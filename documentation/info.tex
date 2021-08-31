@@ -1,0 +1,197 @@
+\documentclass[10pt,a4paper,twoside]{article}
+
+\usepackage[margin=1.0in]{geometry}
+
+\usepackage[english]{babel}
+\usepackage[utf8]{inputenc}
+\usepackage{amsmath,amsfonts}
+\usepackage{graphicx}
+\usepackage[colorinlistoftodos]{todonotes}
+\usepackage{bm}
+\usepackage{url}
+\usepackage{algorithm}
+\usepackage{algpseudocode}
+
+
+\title{General implementation of EARSM turbulence model}
+\author{M. Schmelzer}
+%\date{}
+
+\newcommand{\B}{\bm{\mathcal{B}}}
+\newcommand{\tauij}{\tau_{ij}}
+\newcommand{\aij}{a_{ij}}
+\newcommand{\bij}{b_{ij}}
+\newcommand{\Sij}{S_{ij}}
+\newcommand{\Oij}{\Omega_{ij}}
+\newcommand{\komegasst}{$k$-$\omega$ SST}
+\newcommand{\adelta}{a^\Delta_{ij}}
+\newcommand{\bdelta}{b^\Delta_{ij}}
+\newcommand{\frozen}{$k$-corrective-frozen-RANS}
+\newcommand{\bpk}{b^R_{ij}}
+\newcommand{\bmtheta}{\bm{\Theta}}
+
+
+
+\begin{document}
+\maketitle
+
+\section{Turbulence model \komegasst}
+
+The incompressible and constant-density RANS equations read
+\begin{align}
+	\partial_i U_i &= 0, \nonumber \\
+	U_j \partial_j U_i &= \partial_j \left[ -\frac{1}{\rho} P + \nu \partial_j U_i - \tauij \right],
+\end{align}
+\noindent where $U_i$ is the mean velocity, $\rho$ is the constant density, $P$ is the mean pressure and $\nu$ is the kinematic viscosity. The Reynolds-stress $\tauij$ is the subject of modelling. This symmetric, second-order tensor field can be decomposed into an anisotropic $\aij = 2k\bij$ and isotropic part $\frac{2}{3} k \delta_{ij}$
+\begin{align}
+	\tauij &= 2k \left( \bij  + \frac{1}{3} \delta_{ij} \right), \label{eq::reynoldsstress}
+\end{align}
+\noindent in which the baseline model, $\bij^o = -\frac{\nu_t}{k} S_{ij}$, forms a linear relation between anisotropy and the mean-strain rate tensor $\Sij$ via the scalar eddy viscosity $\nu_t$. Commonly, $\nu_t$ is computed using a transport model such as \komegasst{} \cite{Leschziner2015}, in which $k$ is the turbulent kinetic energy and $\omega$ the specific dissipation rate. The constitutive relation is augmented with an additive term $\bdelta$ leading to 
+\begin{align}
+	\bij   &= -\frac{\nu_t}{k} S_{ij} + \bdelta.\label{eq::nonlinearconstrel}
+\end{align}
+This additive implementation, in which the Bousinesq term is unaltered, has the benefit of enhanced numerical stability \cite{Weatheritt2017}. As a closure model we use the \komegasst{} model
+\begin{align}
+	\partial_t k + U_j \partial_j k &= P_k - \beta^* \omega k + \partial_j \left[ (\nu + \sigma_k \nu_t) \partial_j k \right],\label{eq::augmentedkeq} \\
+	\partial_t \omega + U_j \partial_j \omega &= \frac{\gamma}{\nu_t} P_k - \beta \omega^2 + \partial_j \left[ (\nu + \sigma_\omega \nu_t) \partial_j \omega \right] + CD_{k\omega},
+	 \label{eq::augmentedkOmegaSST}
+\end{align}
+\noindent in which the production of turbulent kinetic energy is augmented by $\bdelta$ and bounded following Menter's limiter\cite{Menter2003a}
+\begin{align}
+	P_k = \min \left(-2k(\bij^o + \bdelta) \partial_j U_i, \;10 \beta^* \omega k\right).
+	\label{eq::productionlimiter}
+\end{align}
+The corresponding eddy viscosity is $\nu_t = \frac{a_1 k}{\text{max}(a_1 \omega, SF_2)}$. The other standard terms of \komegasst{} read
+\begin{align}	
+	 CD_{k\omega} &= \max \left( 2 \sigma_{\omega 2} \frac{1}{\omega}(\partial_i k)(\partial_i \omega), 10^{-10} \right), \nonumber\\
+	 F_1 &= \text{tanh}\left[\left(\min \left[\max \left(\frac{\sqrt{k}}{\beta^* \omega y}, \frac{500\nu}{y^2\omega} \right), \frac{4\sigma_{\omega 2}k}{CD_{k\omega}y^2} \right] \right)^4\right],\nonumber\\
+	 F_2 &= \tanh \left[ \left( \max \left( \frac{2\sqrt{k}}{\beta^* \omega y}, \frac{500\nu}{y^2 \omega} \right) \right)^2  \right], \nonumber\\
+	 \Phi &= F_1\Phi_1 + (1-F_1)\Phi_2,
+	 \end{align}
+\noindent in which the latter blends the coefficients $\Phi \rightarrow (\Phi_1, \Phi_2)$
+\begin{align}
+	\alpha &= (5/9,0.44), \beta = (3/40,0.0828), \sigma_k = (0.85,1.0), \sigma_\omega = (0.5,0.856).
+\end{align}
+The remaining terms are $\beta^*=0.09, a_1 = 0.31$ and $S = \sqrt{2S_{ij}S_{ij}}$.
+
+\subsection{Nonlinear eddy-viscosity model for $\bdelta$}
+ In \cite{Pope1975}, a nonlinear generalisation of the linear eddy viscosity concept was proposed. This concept has been used in several works on data-driven turbulence modelling \cite{Xiao2019,Duraisamy2019}. The fundamental assumption is made that the anisotropy of the Reynolds-stress $\bij$ not only depends on the strain rate tensor $S_{ij} = \tau \frac{1}{2} (\partial_j U_i + \partial_i U_j)$ but also on the rotation rate tensor $\Omega_{ij}= \tau \frac{1}{2} (\partial_j U_i - \partial_i U_j) $ with the timescale $\tau=1/\omega$. The Cayley-Hamilton theorem then dictates that the most general form of the anisotropic part of the Reynolds-stress can be expressed as
+\begin{align}
+	\bij(\Sij, \Oij) = \sum_{n=1}^N T_{ij}^{(n)} \alpha_n(I_1, ..., I_5), \label{eq::nonlinearstressstrain}
+\end{align}
+\noindent with ten nonlinear base tensors $T_{ij}^{(n)}$ and five corresponding invariants $I_m$. In the following, we only consider two-dimensional flow cases, for which the first three base tensors form a linear independent basis  and only the first two invariants are nonzero \cite{Gatski2000}. Our set of base tensors and invariants reads
+\begin{align}
+	T_{ij}^{(1)} &= S_{ij},\; T_{ij}^{(2)} = S_{ik}\Omega_{kj} - \Omega_{ik}S_{kj}, \nonumber \\
+	T_{ij}^{(3)} &= S_{ik}S_{kj} - \frac{1}{3} \delta_{ij} S_{mn}S_{nm}\label{eq:basetensor}\\
+	I_1 &= S_{mn}S_{nm},\; I_2 = \Omega_{mn}\Omega_{nm}. \label{eq:invariants}
+\end{align}
+Using this set for \eqref{eq::nonlinearstressstrain} we have an ansatz, which only requires functional expressions for the coefficients $\alpha_n$, to model $\bdelta$. For the present work we focus on a library, in which the primitive input features are squared and the resulting candidates are multiplied by each other leading to a maximum degree up to $D=6$. The number of possible candidates is $\binom{M+D}{D} = \binom{8}{6} = 28$.
+%\begin{align}
+%	\B =& \Big[ 1, \nonumber \\ 
+%	I_1, I_2, \nonumber \\ 
+%	I_1 I_2, I_1^2, I_2^2, \nonumber \\ 
+%	I_1 I_2^2, I_1^2 I_2, I_1^2 I_2^2, I_1 I_2^3, I_1^3 I_2, I_1^2 I_2^3, I_1^3 I_2^2, I_1^4 I_2^2, \nonumber \\ 
+%	& \;\;I_1 I_2^4, I_1^2 I_2^4,  \Big]^T.
+%\end{align}
+%\[\begin{array}{c}
+%1\\
+%I_1, I_2\\
+%I_1^2, I_1I_2, I_2^2 \\
+%I_1^3, I_1^2I_2, I_1I_2^2, I_2^3 \\
+%I_1^4, I_1^3I_2, I_1^2I_2^2, I_1I_2^3, I_4^4 \\
+%I_1^5, I_1^4I_2, I_1^3I_2^2, I_1^2 I_2^3, I_1I_2^4, I_2^5\\
+%I_1^6, I_1^5I_2, I_1^4I_2^2, I_1^3 I_2^3, I_1^2 I_2^4, I_1 I_2^5, I_2^6 
+%\end{array}\]
+%\begin{align}
+%	\B =& \Big[ 1, I_1, I_2, I_1^2, I_2^2, I_1^2 I_2^3, I_1^4 I_2^2, I_1 I_2^2, I_1 I_2^3,\nonumber \\ 
+%	& \;\;I_1 I_2^4, I_1^3 I_2, I_1^2 I_2^4, I_1^2 I_2, I_1 I_2, I_1^3 I_2^2, I_1^2 I_2^2 \Big]^T
+%	\end{align}
+
+\begin{center}
+\begin{tabular}{rccccccccccccc}
+$D=0$:& & & & & & & 1\\
+$D=1$:& & & & & & $I_1$ & & $I_2$\\
+$D=2$:& & & & & $I_1^2$ & & $I_1I_2$ & & $I_2^2$ \\
+$D=3$:& & & & $I_1^3$ & & $I_1^2I_2$ & & $I_1I_2^2$ & & $I_2^3$ \\
+$D=4$:& & & $I_1^4$ & & $I_1^3I_2$ & & $I_1^2I_2^2$ & & $I_1I_2^3$ & & $I_2^4$ \\
+$D=5$:& & $I_1^5$ & & $I_1^4I_2$ & & $I_1^3I_2^2$ & & $I_1^2 I_2^3$ & & $I_1I_2^4$ & &$I_2^5$\\
+$D=6$:& $I_1^6$ & & $I_1^5I_2$ & & $I_1^4I_2^2$ & & $I_1^3 I_2^3$ & & $I_1^2 I_2^4$ & & $I_1 I_2^5$ & & $I_2^6$ 
+\end{tabular}
+\end{center}
+
+Given this set of $T_{ij}{(n)}$ and $I_m$ the full expression of \eqref{eq::nonlinearstressstrain} reads
+\begin{align}
+\bij(\Sij, \Oij) &= \theta_0 T_{ij}^{(1)} + \theta_1 I_1 T_{ij}^{(1)} + \theta_2 I_2 T_{ij}^{(1)} + \dots + \theta_{26} I_1 I_2^5 T_{ij}^{(1)} + \theta_{27} I_2^6 T_{ij}^{(1)} \nonumber \\
+&+ \theta_{28} T_{ij}^{(2)} + \theta_{29} I_1 T_{ij}^{(2)} + \theta_{30} I_2 T_{ij}^{(2)} + \dots + \theta_{54} I_1 I_2^5 T_{ij}^{(2)} + \theta_{55} I_2^6 T_{ij}^{(2)} \nonumber \\
+&+ \theta_{56} T_{ij}^{(3)} + \theta_{57} I_1 T_{ij}^{(3)} + \theta_{58} I_2 T_{ij}^{(3)} + \dots + \theta_{82} I_1 I_2^5 T_{ij}^{(3)} + \theta_{83} I_2^6 T_{ij}^{(3)}, 
+\end{align}
+
+\noindent in which the coefficients of the vector 
+
+\begin{align}
+\bm{\Theta}  &= \Big[ \theta_0, \theta_1, \theta_2, \dots , \theta_{83} \Big]^T
+\end{align}
+
+\noindent need to be determined. The implementation of the Generalized Coefficients for EARSM (\texttt{GCEARSM}) uses a vector \texttt{Theta}, which contains all coefficients. Full overview of the terms and the corresponding indices in \texttt{Theta} are given in the following table and need to be provided in \texttt{constant/RASProperties}, e.g. using the provided \texttt{python} script. 
+
+
+\begin{center}
+\begin{tabular}{r|c||r|c||r|c}
+index & term & index & term & index & term\\
+0 & $T_{ij}^{(1)}$ & 28 & $T_{ij}^{(2)}$ & 56 & $T_{ij}^{(3)}$ \\
+1 & $I_1 T_{ij}^{(1)}$ & 29 & $I_1 T_{ij}^{(2)}$ & 57 & $I_1 T_{ij}^{(3)}$\\
+2 & $I_2 T_{ij}^{(1)}$ & 30 & $I_2 T_{ij}^{(2)}$ & 58 & $I_2 T_{ij}^{(3)}$\\
+3 & $I_1^2 T_{ij}^{(1)}$ & 31 & $I_1^2 T_{ij}^{(2)}$ & 59 & $I_1^2 T_{ij}^{(3)}$\\
+4 & $I_1 I_2 T_{ij}^{(1)}$ & 32 & $I_1 I_2 T_{ij}^{(2)}$ & 60 & $I_1 I_2 T_{ij}^{(3)}$\\
+5 & $I_2^2 T_{ij}^{(1)}$ & 33 & $I_2^2 T_{ij}^{(2)}$ & 61 & $I_2^2 T_{ij}^{(3)}$\\
+6 & $I_1^3 T_{ij}^{(1)}$ & 34 & $I_1^3 T_{ij}^{(2)}$ & 62 & $I_1^3 T_{ij}^{(3)}$\\
+7 & $I_1^2I_2 T_{ij}^{(1)}$ & 35 & $I_1^2I_2 T_{ij}^{(2)}$ & 63 & $I_1^2I_2 T_{ij}^{(3)}$\\
+8 & $I_1I_2^2 T_{ij}^{(1)}$ & 36 & $I_1I_2^2 T_{ij}^{(2)}$ & 64 & $I_1I_2^2 T_{ij}^{(3)}$\\
+9 & $I_2^3 T_{ij}^{(1)}$ & 37 & $I_2^3 T_{ij}^{(2)}$ & 65 & $I_2^3 T_{ij}^{(3)}$\\
+10 & $I_1^4 T_{ij}^{(1)}$ & 38 & $I_1^4 T_{ij}^{(2)}$ & 66 & $I_1^4 T_{ij}^{(3)}$\\
+11 & $I_1^3I_2 T_{ij}^{(1)}$ & 39 & $I_1^3I_2 T_{ij}^{(2)}$ & 67 & $I_1^3I_2 T_{ij}^{(3)}$\\
+12 & $I_1^2I_2 T_{ij}^{(1)}$ & 40 & $I_1^2I_2 T_{ij}^{(2)}$ & 68 & $I_1^2I_2 T_{ij}^{(3)}$\\
+13 & $I_1I_2^3 T_{ij}^{(1)}$ & 41 & $I_1I_2^3 T_{ij}^{(2)}$ & 69 & $I_1I_2^3 T_{ij}^{(3)}$\\
+14 & $I_2^4 T_{ij}^{(1)}$ & 42 & $I_2^4 T_{ij}^{(2)}$ & 70 & $I_2^4 T_{ij}^{(3)}$\\
+15 & $I_1^5 T_{ij}^{(1)}$ & 43 & $I_1^5 T_{ij}^{(2)}$ & 71 & $I_1^5 T_{ij}^{(3)}$\\
+16 & $I_1^4I_2 T_{ij}^{(1)}$ & 44 & $I_1^4I_2 T_{ij}^{(2)}$ & 72 & $I_1^4I_2 T_{ij}^{(3)}$\\
+17 & $I_1^3I_2^2 T_{ij}^{(1)}$ & 45 & $I_1^3I_2^2 T_{ij}^{(2)}$ & 73 & $I_1^3I_2^2 T_{ij}^{(3)}$\\
+18 & $I_1^2I_2^3 T_{ij}^{(1)}$ & 46 & $I_1^2I_2^3 T_{ij}^{(2)}$ & 74 & $I_1^2I_2^3 T_{ij}^{(3)}$\\
+19 & $I_1I_2^4 T_{ij}^{(1)}$ & 47 & $I_1I_2^4 T_{ij}^{(2)}$ & 75 & $I_1I_2^4 T_{ij}^{(3)}$\\
+20 & $I_2^5 T_{ij}^{(1)}$ & 48 & $I_2^5 T_{ij}^{(2)}$ & 76 & $I_2^5 T_{ij}^{(3)}$\\
+21 & $I_1^6 T_{ij}^{(1)}$ & 49 & $I_1^6 T_{ij}^{(2)}$ & 77 & $I_1^6 T_{ij}^{(3)}$\\
+22 & $I_1^5I_2 T_{ij}^{(1)}$ & 50 & $I_1^5I_2 T_{ij}^{(2)}$ & 78 & $I_1^5I_2 T_{ij}^{(3)}$\\
+23 & $I_1^4I_2^2 T_{ij}^{(1)}$ & 51 & $I_1^4I_2^2 T_{ij}^{(2)}$ & 79 & $I_1^4I_2^2 T_{ij}^{(3)}$\\
+24 & $I_1^3I_2^3 T_{ij}^{(1)}$ & 52 & $I_1^3I_2^3 T_{ij}^{(2)}$ & 80 & $I_1^3I_2^3 T_{ij}^{(3)}$\\
+25 & $I_1^2I_2^4 T_{ij}^{(1)}$ & 53 & $I_1^2I_2^4 T_{ij}^{(2)}$ & 81 & $I_1^2I_2^4 T_{ij}^{(3)}$\\
+26 & $I_1I_2^5 T_{ij}^{(1)}$ & 54 & $I_1I_2^5 T_{ij}^{(2)}$ & 82 & $I_1I_2^5 T_{ij}^{(3)}$\\
+27 & $I_2^6 T_{ij}^{(1)}$ & 55 & $I_2^6 T_{ij}^{(2)}$ & 83 & $I_2^6 T_{ij}^{(3)}$\\
+\end{tabular}
+\end{center}
+
+
+
+
+
+%
+% However, computing $\bdelta$ using \eqref{eq::nonlinearconstrel} requires a correct $k$. This aspect is taken into account in the modelling ansatz for $R$, for which we take a closer look at the eddy viscosity concept.
+%
+%Both linear and nonlinear eddy viscosity models provide expressions for the anisotropy $\bij$ based on a local relation between stress and strain. Due to the restriction of this local closure only the normal stresses $\frac{2}{3}k\delta_{ij}$ can account for nonlocal effects by transport equations for the turbulent quantities using convection and diffusion terms \cite{Leschziner2015,Wilcox}. The term $R$ provides local information to correct the transport equations. Depending on the local sign of $R$ it either increases or decreases the net production $P_k$ locally. Hence, it acts as an additional production or dissipation term, which can overcome the error in $k$. We model it in a similar way to the turbulent production
+%\begin{align}
+%	R &= 2k\bpk \partial_j U_i,
+%	\label{eq::R}
+%\end{align}
+%\noindent which has the additional benefit that we can also use the framework of nonlinear eddy viscosity models to model $R$. Given the polynomial model \eqref{eq::nonlinearstressstrain} and the set of base tensors \eqref{eq:basetensor} and invariants \eqref{eq:invariants} we are now left with the task of providing suitable expressions for $\alpha_n(I_1, I_2)$ for $n=1, ..., 3$ to overcome the model-form error. 
+%
+%We rely on the nonlinear eddy viscosity concept and aim to find models for $\alpha_n$ in \eqref{eq::nonlinearstressstrain} given as primitive input features the invariants $I_1$ and $I_2$. 
+%\noindent with the cardinality of $\B$, $|\B|=16$.
+
+
+
+
+
+
+\bibliographystyle{aiaa}
+\bibliography{library.bib}
+
+\end{document}

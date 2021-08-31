@@ -1,0 +1,93 @@
+/*---------------------------------------------------------------------------*\
+| =========                 |                                                 |
+| \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox           |
+|  \\    /   O peration     | Version:  2.3.1                                 |
+|   \\  /    A nd           | Web:      www.OpenFOAM.org                      |
+|    \\/     M anipulation  |                                                 |
+\*---------------------------------------------------------------------------*/
+Build  : 2.3.1-262087cdf8db
+Exec   : simpleFoam
+Date   : Feb 27 2020
+Time   : 20:40:51
+Host   : "tschuri"
+PID    : 29871
+Case   : /home/ms/ownCloud/WORK/SYMBOLIC_REGRESSION/symreg/case
+nProcs : 1
+sigFpe : Enabling floating point exception trapping (FOAM_SIGFPE).
+fileModificationChecking : Monitoring run-time modified files using timeStampMaster
+allowSystemOperations : Allowing user-supplied system call operations
+
+// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
+Create time
+
+--> FOAM Warning : 
+    From function Time::setControls()
+    in file db/Time/Time.C at line 268
+    Reading "/home/ms/ownCloud/WORK/SYMBOLIC_REGRESSION/symreg/case/17999/uniform/time" from line 18 to line 26
+    Time read from time dictionary 18000 differs from actual time 17999.
+    This may cause unexpected database behaviour. If you are not interested
+    in preserving time state delete the time dictionary.
+Create mesh for time = 17999
+
+Reading field p
+
+Reading field U
+
+Reading/calculating face flux field phi
+
+Selecting incompressible transport model Newtonian
+Selecting RAS turbulence model GCEARSM
+GCEARSMCoeffs
+{
+    Theta           ( 0.1 0 0 0 0 0 0 0 0 0 0.2 0 0 0 0 0 0 0 0 0 0 0 0.3 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 );
+    alphaK1         0.85;
+    alphaK2         1;
+    alphaOmega1     0.5;
+    alphaOmega2     0.856;
+    gamma1          0.555555555555556;
+    gamma2          0.44;
+    beta1           0.075;
+    beta2           0.0828;
+    betaStar        0.09;
+    a1              0.31;
+    b1              1;
+    c1              10;
+    F3              false;
+}
+
+Creating finite volume options from "constant/fvOptions"
+
+Selecting finite volume options model type pressureGradientExplicitSource
+    Source: momentumSource
+    - applying source for all time
+    - selecting all cells
+    - selected 15600 cell(s) with volume 5.08082422293632
+
+    Reading pressure gradient from file
+    Initial pressure gradient = 0.00837240787756747
+
+
+SIMPLE: convergence criteria
+    field p	 tolerance 1e-15
+
+
+Starting time loop
+
+Time = 18000
+
+smoothSolver:  Solving for Ux, Initial residual = 3.08872848627669e-05, Final residual = 2.79864531733483e-06, No Iterations 2
+smoothSolver:  Solving for Uy, Initial residual = 0.00201870098077821, Final residual = 0.000174747675100557, No Iterations 2
+Pressure gradient source: uncorrected Ubar = 0.720011435457444, pressure gradient = 0.00732246771365241
+GAMG:  Solving for p, Initial residual = 0.643363423480927, Final residual = 0.000599434429056667, No Iterations 12
+time step continuity errors : sum local = 4.76090333947947e-06, global = -5.21777468351811e-18, cumulative = -5.21777468351811e-18
+Pressure gradient source: uncorrected Ubar = 0.720003683150362, pressure gradient = 0.00803424147590565
+
+Size of Theta vector 84
+
+Production maxmax(GCEARSM:G) [0 2 -3 0 0 0 0] 0.0788222176263864
+smoothSolver:  Solving for omega, Initial residual = 0.000227371076006589, Final residual = 1.62670083607739e-05, No Iterations 2
+smoothSolver:  Solving for k, Initial residual = 0.00113515190760777, Final residual = 6.22584301815377e-05, No Iterations 4
+ExecutionTime = 0.36 s  ClockTime = 0 s
+
+End
+

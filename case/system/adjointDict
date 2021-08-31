@@ -1,0 +1,37 @@
+/*--------------------------------*- C++ -*----------------------------------*\
+| =========                 |                                                 |
+| \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox           |
+|  \\    /   O peration     | Version:  3.0.1                                 |
+|   \\  /    A nd           | Web:      www.OpenFOAM.org                      |
+|    \\/     M anipulation  |                                                 |
+\*---------------------------------------------------------------------------*/
+FoamFile
+{
+    version     2.0;
+    format      ascii;
+    class       dictionary;
+    location    "system";
+    object      adjointDict;
+}
+// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
+
+// adjointSimpleFoam
+maxIter         50;
+NumberOfCells   2600;
+delta           1;
+tol             1e-4;
+//gamma           gamma [0 0 0 0 0 0 0] 10e16;
+sigmaObs2       sigmaObs2 [0 0 0 0 0 0 0]  2.0;
+sigmaPrior2     sigmaPrior2 [0 -2 3 0 0 0 0] 0.25;
+
+
+/*
+// adjointConstantSource
+maxIter         50;
+NumberOfCells   2600;
+delta           1;
+tol             1e-4;
+gamma           gamma [0 0 -1 0 0 0 0] 10;
+*/
+
+// ************************************************************************* //

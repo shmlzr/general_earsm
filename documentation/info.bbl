@@ -1,0 +1,37 @@
+\begin{thebibliography}{1}
+\newcommand{\enquote}[1]{``#1''}
+
+\bibitem{Leschziner2015}
+Leschziner, M., {\em {Statistical Turbulence Modelling for Fluid Dynamics -
+  Demystified: An Introductory Text for Graduate Engineering Students}\/},
+  Imperial College Press, 2015.
+
+\bibitem{Weatheritt2017}
+Weatheritt, J. and Sandberg, R.~D., \enquote{{Hybrid
+  Reynolds-Averaged/Large-Eddy Simulation Methodology from Symbolic Regression:
+  Formulation and Application},} {\em AIAA Journal\/}, 2017, pp.~1--13.
+
+\bibitem{Menter2003a}
+Menter, F.~R., Kuntz, M., and Langtry, R., \enquote{{Ten Years of Industrial
+  Experience with the SST Turbulence Model Turbulence heat and mass transfer},}
+  {\em Turbulence, Heat and Mass Transfer 4\/}, 2003.
+
+\bibitem{Pope1975}
+Pope, S.~B., \enquote{{A more general effective-viscosity hypothesis},} {\em
+  Journal of Fluid Mechanics\/}, Vol.~72, No.~2, 1975, pp.~331--340.
+
+\bibitem{Xiao2019}
+Xiao, H. and Cinnella, P., \enquote{{Quantification of Model Uncertainty in
+  RANS Simulations: A Review},} {\em Progress in Aerospace Sciences\/}, 2019.
+
+\bibitem{Duraisamy2019}
+Duraisamy, K., Iaccarino, G., and Xiao, H., \enquote{{Turbulence Modeling in
+  the Age of Data},} {\em Annual Review of Fluid Mechanics\/}, Vol.~51, No.~1,
+  2019.
+
+\bibitem{Gatski2000}
+Gatski, T. and Jongen, T., \enquote{{Nonlinear eddy viscosity and algebraic
+  stress models for solving complex turbulent flows},} {\em Progress in
+  Aerospace SciencesAerospace Sciences\/}, Vol.~36, 2000, pp.~655--682.
+
+\end{thebibliography}
