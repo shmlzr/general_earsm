@@ -1,6 +1,8 @@
 #!/usr/bin/env python
 
-"""A script to work with GCEARSM in OpenFOAM
+"""
+    A script to work with GCEARSM in OpenFOAM
+
 """
 
 import numpy as np
